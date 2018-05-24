@@ -426,8 +426,6 @@ var FontFaceObject = (function FontFaceObjectClosure() {
             }
             return this.compiledGlyphs[character];
           } catch (error) {
-            console.log(error);
-            console.log('Error ignored');
             return () => {};
           }
     },
