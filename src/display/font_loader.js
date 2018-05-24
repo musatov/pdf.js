@@ -387,43 +387,49 @@ var FontFaceObject = (function FontFaceObjectClosure() {
 
     getPathGenerator:
         function FontFaceObject_getPathGenerator(objs, character) {
-      if (!(character in this.compiledGlyphs)) {
-        var cmds = objs.get(this.loadedName + '_path_' + character);
-        var current, i, len;
-
-        // If we can, compile cmds into JS for MAXIMUM SPEED
-        if (this.isEvalSupported && IsEvalSupportedCached.value) {
-          var args, js = '';
-          for (i = 0, len = cmds.length; i < len; i++) {
-            current = cmds[i];
-
-            if (current.args !== undefined) {
-              args = current.args.join(',');
-            } else {
-              args = '';
-            }
-
-            js += 'c.' + current.cmd + '(' + args + ');\n';
-          }
-          // eslint-disable-next-line no-new-func
-          this.compiledGlyphs[character] = new Function('c', 'size', js);
-        } else {
-          // But fall back on using Function.prototype.apply() if we're
-          // blocked from using eval() for whatever reason (like CSP policies)
-          this.compiledGlyphs[character] = function(c, size) {
-            for (i = 0, len = cmds.length; i < len; i++) {
-              current = cmds[i];
-
-              if (current.cmd === 'scale') {
-                current.args = [size, -size];
+          try {
+            if (!(character in this.compiledGlyphs)) {
+              var cmds = objs.get(this.loadedName + '_path_' + character);
+              var current, i, len;
+      
+              // If we can, compile cmds into JS for MAXIMUM SPEED
+              if (this.isEvalSupported && IsEvalSupportedCached.value) {
+                var args, js = '';
+                for (i = 0, len = cmds.length; i < len; i++) {
+                  current = cmds[i];
+      
+                  if (current.args !== undefined) {
+                    args = current.args.join(',');
+                  } else {
+                    args = '';
+                  }
+      
+                  js += 'c.' + current.cmd + '(' + args + ');\n';
+                }
+                // eslint-disable-next-line no-new-func
+                this.compiledGlyphs[character] = new Function('c', 'size', js);
+              } else {
+                // But fall back on using Function.prototype.apply() if we're
+                // blocked from using eval() for whatever reason (like CSP policies)
+                this.compiledGlyphs[character] = function(c, size) {
+                  for (i = 0, len = cmds.length; i < len; i++) {
+                    current = cmds[i];
+      
+                    if (current.cmd === 'scale') {
+                      current.args = [size, -size];
+                    }
+      
+                    c[current.cmd].apply(c, current.args);
+                  }
+                };
               }
-
-              c[current.cmd].apply(c, current.args);
             }
-          };
-        }
-      }
-      return this.compiledGlyphs[character];
+            return this.compiledGlyphs[character];
+          } catch (error) {
+            console.log(error);
+            console.log('Error ignored');
+            return () => {};
+          }
     },
   };
 
